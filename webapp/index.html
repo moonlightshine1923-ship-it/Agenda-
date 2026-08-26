@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OPA — Journal PDG / DG</title>
+<link rel="icon" href="/assets/logo.png">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<!-- ================= ÉCRAN DE CONNEXION ================= -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <img src="/assets/logo.png" alt="Logo OPA" class="login-logo">
+    <h1>Journal Exécutif</h1>
+    <p class="login-sub">Organisation du Patronat Algérien</p>
+    <form id="loginForm" autocomplete="off">
+      <label>Identifiant</label>
+      <input type="text" id="loginUser" placeholder="pdg ou dg" required>
+      <label>Mot de passe</label>
+      <div class="pass-wrap">
+        <input type="password" id="loginPass" placeholder="••••••••" required>
+        <button type="button" id="togglePass" class="eye-btn" title="Afficher / masquer">👁</button>
+      </div>
+      <button type="submit" class="btn-gold">Se connecter</button>
+      <div id="loginError" class="login-error"></div>
+    </form>
+    <div class="login-hint">Accès réservé au Président et au Directeur Général</div>
+  </div>
+</div>
+
+<!-- ================= APPLICATION ================= -->
+<div id="appScreen" class="app hidden">
+
+  <!-- En-tête -->
+  <header class="topbar">
+    <div class="brand">
+      <img src="/assets/logo.png" alt="OPA">
+      <div class="brand-txt">
+        <strong>OPA</strong>
+        <span>Journal Exécutif</span>
+      </div>
+    </div>
+    <div class="top-right">
+      <div class="presence" id="presenceBox" title="Présence en ligne">
+        <span class="dot" id="dotPDG"></span> PDG
+        <span class="dot" id="dotDG"></span> DG
+      </div>
+      <button id="bellBtn" class="bell" title="Notifications">
+        🔔<span id="badge" class="badge hidden">0</span>
+      </button>
+      <div class="user-chip">
+        <span id="userRole" class="role-tag"></span>
+        <button id="logoutBtn" class="btn-outline small">Déconnexion</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Panneau notifications -->
+  <div id="notifPanel" class="notif-panel hidden">
+    <div class="notif-head">
+      <span>Notifications</span>
+      <button id="clearNotif" class="btn-outline small">Tout marquer lu</button>
+    </div>
+    <div id="notifList" class="notif-list"><div class="empty">Aucune notification</div></div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="tabs">
+    <button class="tab active" data-tab="agenda">📅 Agenda</button>
+    <button class="tab" data-tab="calendar">🗓 Calendrier</button>
+    <button class="tab" data-tab="finances">💰 Finances</button>
+    <button class="tab" data-tab="audit">🗂 Journal d'audit</button>
+    <button class="tab" data-tab="privacy">🔒 Confidentialité</button>
+  </nav>
+
+  <main class="content">
+
+    <!-- ============ ONGLET AGENDA ============ -->
+    <section id="tab-agenda" class="tab-panel">
+      <div class="today-banner">
+        <div>
+          <h2 id="todayTitle">Agenda du jour</h2>
+          <span id="todayDate" class="muted"></span>
+        </div>
+        <button id="addApptBtn" class="btn-gold">+ Nouveau RDV / Mémo</button>
+      </div>
+
+      <div class="agenda-grid">
+        <div class="card">
+          <h3>📌 Aujourd'hui <span id="todayCount" class="count-pill"></span></h3>
+          <div id="todayList" class="appt-list"></div>
+        </div>
+        <div class="card">
+          <h3>🗓 À venir</h3>
+          <div id="upcomingList" class="appt-list"></div>
+        </div>
+        <div class="card">
+          <h3>✔ Passés / terminés</h3>
+          <div id="pastList" class="appt-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ONGLET CALENDRIER (design carte mobile) ============ -->
+    <section id="tab-calendar" class="tab-panel hidden">
+      <div class="cal-phone">
+
+        <!-- Barre de navigation du mois -->
+        <div class="cal-card cal-header-card">
+          <button id="calPrev" class="cal-arrow">‹</button>
+          <div id="calTitle" class="cal-title"></div>
+          <button id="calNext" class="cal-arrow">›</button>
+          <button id="calToday" class="cal-today-btn" title="Revenir à aujourd'hui">●</button>
+        </div>
+
+        <!-- Grille du mois -->
+        <div class="cal-card">
+          <div class="cal-weekdays">
+            <div>D</div><div>L</div><div>M</div><div>M</div><div>J</div><div>V</div><div>S</div>
+          </div>
+          <div id="calGrid" class="cal-grid"></div>
+          <div class="cal-legend">
+            <span><i class="lg lg-holiday"></i> Férié</span>
+            <span><i class="lg lg-today"></i> Aujourd'hui</span>
+            <span><i class="lg lg-rdv"></i> RDV</span>
+            <span><i class="lg lg-memo"></i> Mémo</span>
+          </div>
+        </div>
+
+        <!-- Événements + fériés du jour/mois sélectionné -->
+        <div id="calDayTitle" class="cal-day-title"></div>
+        <div id="calEvents" class="cal-events"></div>
+
+        <!-- Bouton flottant + -->
+        <button id="calAddBtn" class="cal-fab" title="Ajouter un rendez-vous">+</button>
+      </div>
+    </section>
+
+    <!-- ============ ONGLET FINANCES ============ -->
+    <section id="tab-finances" class="tab-panel hidden">
+      <div class="today-banner">
+        <div>
+          <h2>Module financier</h2>
+          <span class="muted">Entrées et sorties — synchronisation en temps réel</span>
+        </div>
+        <button id="addTxBtn" class="btn-gold">+ Nouvelle transaction</button>
+      </div>
+
+      <!-- Tableaux de bord -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">AUJOURD'HUI</div>
+          <div class="stat-line">Entrées <span id="dayIn" class="pos"></span></div>
+          <div class="stat-line">Sorties <span id="dayOut" class="neg"></span></div>
+          <div class="stat-solde">Solde <span id="dayNet"></span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label" id="monthLabel">CE MOIS</div>
+          <div class="stat-line">Entrées <span id="monthIn" class="pos"></span></div>
+          <div class="stat-line">Sorties <span id="monthOut" class="neg"></span></div>
+          <div class="stat-solde">Solde <span id="monthNet"></span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label" id="yearLabel">ANNÉE</div>
+          <div class="stat-line">Entrées <span id="yearIn" class="pos"></span></div>
+          <div class="stat-line">Sorties <span id="yearOut" class="neg"></span></div>
+          <div class="stat-solde">Solde <span id="yearNet"></span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Transactions récentes</h3>
+        <div class="table-wrap">
+          <table class="fin-table">
+            <thead>
+              <tr><th>Date</th><th>Libellé</th><th>Type</th><th class="right">Montant (DA)</th><th>Par</th><th></th></tr>
+            </thead>
+            <tbody id="finBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ONGLET AUDIT ============ -->
+    <section id="tab-audit" class="tab-panel hidden">
+      <div class="today-banner">
+        <div>
+          <h2>Journal d'audit</h2>
+          <span class="muted">Traçabilité complète de toutes les actions</span>
+        </div>
+      </div>
+      <div class="card">
+        <div id="auditList" class="audit-list"></div>
+      </div>
+    </section>
+
+    <!-- ============ ONGLET CONFIDENTIALITÉ ============ -->
+    <section id="tab-privacy" class="tab-panel hidden">
+      <div class="today-banner">
+        <div>
+          <h2>Confidentialité</h2>
+          <span class="muted">Gestion de votre mot de passe et sécurité du compte</span>
+        </div>
+      </div>
+
+      <div class="privacy-grid">
+        <div class="card privacy-card">
+          <h3>🔑 Changer mon mot de passe</h3>
+          <p class="privacy-note">Pour votre sécurité, le mot de passe <strong>actuel</strong> est obligatoire pour valider le changement.</p>
+          <form id="pwdForm" autocomplete="off">
+            <label>Mot de passe actuel *</label>
+            <div class="pass-wrap">
+              <input type="password" id="pwdCurrent" required autocomplete="current-password">
+              <button type="button" class="eye-btn" data-eye="pwdCurrent">👁</button>
+            </div>
+
+            <label>Nouveau mot de passe * <span class="pwd-hint">(minimum 8 caractères)</span></label>
+            <div class="pass-wrap">
+              <input type="password" id="pwdNew" required minlength="8" autocomplete="new-password">
+              <button type="button" class="eye-btn" data-eye="pwdNew">👁</button>
+            </div>
+            <div id="pwdStrength" class="pwd-strength"></div>
+
+            <label>Confirmer le nouveau mot de passe *</label>
+            <div class="pass-wrap">
+              <input type="password" id="pwdConfirm" required minlength="8" autocomplete="new-password">
+              <button type="button" class="eye-btn" data-eye="pwdConfirm">👁</button>
+            </div>
+
+            <div id="pwdError" class="pwd-msg error"></div>
+            <div id="pwdSuccess" class="pwd-msg success"></div>
+
+            <button type="submit" class="btn-gold pwd-submit">Changer le mot de passe</button>
+          </form>
+        </div>
+
+        <div class="card privacy-card">
+          <h3>🛡 Conseils de sécurité</h3>
+          <ul class="privacy-tips">
+            <li>Utilisez au moins <strong>10 caractères</strong> mêlant majuscules, minuscules, chiffres et symboles.</li>
+            <li>N'utilisez jamais le même mot de passe que sur d'autres sites.</li>
+            <li>Ne communiquez jamais votre mot de passe, même en interne.</li>
+            <li>Changez-le immédiatement en cas de doute.</li>
+            <li>Chaque changement de mot de passe est tracé dans le <strong>journal d'audit</strong>.</li>
+          </ul>
+          <div class="privacy-info">
+            <div><span class="muted">Compte connecté :</span> <strong id="privacyUser"></strong></div>
+            <div><span class="muted">Rôle :</span> <strong id="privacyRole"></strong></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ============ MODALE RDV ============ -->
+<div id="apptModal" class="modal hidden">
+  <div class="modal-box">
+    <h3 id="apptModalTitle">Nouveau rendez-vous / mémo</h3>
+    <form id="apptForm">
+      <input type="hidden" id="apptId">
+      <label>Titre *</label>
+      <input type="text" id="apptTitle" required maxlength="200">
+      <div class="form-row">
+        <div><label>Date *</label><input type="date" id="apptDate" required></div>
+        <div><label>Heure</label><input type="time" id="apptTime"></div>
+      </div>
+      <div class="form-row">
+        <div>
+          <label>Type</label>
+          <select id="apptType">
+            <option value="rdv">Rendez-vous</option>
+            <option value="memo">Mémo / Note</option>
+          </select>
+        </div>
+        <div>
+          <label>Destiné à</label>
+          <select id="apptTarget">
+            <option value="PDG">PDG</option>
+            <option value="DG">DG</option>
+          </select>
+        </div>
+      </div>
+      <label>Notes</label>
+      <textarea id="apptNotes" rows="3" maxlength="1000"></textarea>
+      <div class="modal-actions">
+        <button type="button" class="btn-outline" data-close>Annuler</button>
+        <button type="submit" class="btn-gold">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============ MODALE TRANSACTION ============ -->
+<div id="txModal" class="modal hidden">
+  <div class="modal-box">
+    <h3 id="txModalTitle">Nouvelle transaction</h3>
+    <form id="txForm">
+      <input type="hidden" id="txId">
+      <label>Libellé *</label>
+      <input type="text" id="txLabel" required maxlength="200">
+      <div class="form-row">
+        <div><label>Montant (DA) *</label><input type="number" id="txAmount" min="0.01" step="0.01" required></div>
+        <div><label>Date *</label><input type="date" id="txDate" required></div>
+      </div>
+      <label>Type</label>
+      <select id="txType">
+        <option value="entree">Entrée</option>
+        <option value="sortie">Sortie</option>
+      </select>
+      <div class="modal-actions">
+        <button type="button" class="btn-outline" data-close>Annuler</button>
+        <button type="submit" class="btn-gold">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
