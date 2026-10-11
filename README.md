@@ -26,18 +26,6 @@ npm start        # → http://localhost:3000
 ```
 Les tables (`appointments`, `finances`, `audit_log`) sont **créées automatiquement** au premier démarrage.
 
-### Configuration (variables d'environnement)
-| Variable | Défaut |
-|---|---|
-| `DB_HOST` | `127.0.0.1` |
-| `DB_PORT` | `3306` |
-| `DB_USER` | `opa` |
-| `DB_PASS` | `opa_secret_2025` |
-| `DB_NAME` | `opa_journal` |
-| `PORT` | `3000` |
-
-Exemple : `DB_HOST=192.168.1.10 DB_PASS=monmdp npm start`
-
 ## ✨ Fonctionnalités
 
 ### 1. Architecture & Authentification

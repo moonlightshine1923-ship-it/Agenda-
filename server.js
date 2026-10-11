@@ -469,6 +469,26 @@ app.get('/api/audit', requireAuth, async (req, res) => {
    Supprime les entrées du journal d'audit datant de plus de 48 heures.
    Vérification toutes les heures + au démarrage.                      */
 const AUDIT_RETENTION_HOURS = 48;
+/* ---------------- Purge des RDV passés ----------------
+   Les rendez-vous / mémos dont la date est antérieure à aujourd'hui
+   sont supprimés DÉFINITIVEMENT de la base de données (affichage :
+   aujourd'hui + à venir uniquement). */
+const todayDZ = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Algiers' });
+async function purgePastAppointments() {
+  try {
+    const [r] = await pool.query('DELETE FROM appointments WHERE date < ?', [todayDZ()]);
+    if (r.affectedRows > 0) {
+      console.log(`🧹 RDV passés supprimés définitivement : ${r.affectedRows} élément(s)`);
+      await addAudit({ role: 'SYS', displayName: 'Système' }, 'PURGE', 'AGENDA',
+        `${r.affectedRows} RDV/mémo(s) passé(s) supprimé(s) définitivement de la base`);
+      // informer les clients connectés pour rafraîchir leur agenda
+      io.emit('appts:purged', { removed: r.affectedRows });
+    }
+  } catch (e) {
+    console.error('Erreur purge RDV passés :', e.message);
+  }
+}
+
 async function purgeOldAudit() {
   try {
     const [r] = await pool.query(
@@ -511,6 +531,9 @@ initDB()
     // Purge de l'audit : au démarrage puis toutes les heures
     purgeOldAudit();
     setInterval(purgeOldAudit, 60 * 60 * 1000);
+    // Purge des RDV passés : au démarrage puis toutes les 5 minutes
+    purgePastAppointments();
+    setInterval(purgePastAppointments, 5 * 60 * 1000);
     server.listen(PORT, '0.0.0.0', () => {
       console.log(`✅ OPA Journal démarré sur http://0.0.0.0:${PORT}`);
     });

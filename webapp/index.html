@@ -87,18 +87,14 @@
         <button id="addApptBtn" class="btn-gold">+ Nouveau RDV / Mémo</button>
       </div>
 
-      <div class="agenda-grid">
+      <div class="agenda-stack">
         <div class="card">
           <h3>📌 Aujourd'hui <span id="todayCount" class="count-pill"></span></h3>
-          <div id="todayList" class="appt-list"></div>
+          <div id="todayList" class="appt-row"></div>
         </div>
         <div class="card">
           <h3>🗓 À venir</h3>
-          <div id="upcomingList" class="appt-list"></div>
-        </div>
-        <div class="card">
-          <h3>✔ Passés / terminés</h3>
-          <div id="pastList" class="appt-list"></div>
+          <div id="upcomingList" class="appt-row"></div>
         </div>
       </div>
     </section>
@@ -260,6 +256,7 @@
 <div id="apptModal" class="modal hidden">
   <div class="modal-box">
     <h3 id="apptModalTitle">Nouveau rendez-vous / mémo</h3>
+    <div id="apptDatePreview" class="appt-date-preview hidden"></div>
     <form id="apptForm">
       <input type="hidden" id="apptId">
       <label>Titre *</label>
@@ -323,5 +320,5 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="/app.js"></script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a48c78f15e9e282f',t:'MTc5MTcwNzEwOA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

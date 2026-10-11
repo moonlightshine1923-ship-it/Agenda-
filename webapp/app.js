@@ -20,6 +20,15 @@ const fmtDate = (s) => {
   const [y, m, d] = s.split('-');
   return `${d}/${m}/${y}`;
 };
+// Jour de la semaine en lettres (ex. « lundi ») + date complète longue
+const fmtWeekday = (s) => {
+  if (!s) return '';
+  return new Date(s + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long' });
+};
+const fmtDateLong = (s) => {
+  if (!s) return '';
+  return new Date(s + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+};
 const escapeHtml = (s) => String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 /* ---------------- Notifications SYSTÈME (son sans interaction) ----------------
@@ -243,7 +252,7 @@ function connectSocket() {
     appointments.push(appt);
     renderAgenda();
     // 🔔 SON uniquement pour l'ajout d'un rendez-vous (type 'rdv')
-    if (by !== ME.role) notify(`📅 ${by} a ajouté : « ${appt.title} » le ${fmtDate(appt.date)}${appt.time ? ' à ' + appt.time : ''}`, appt.type === 'rdv');
+    if (by !== ME.role) notify(`📅 ${by} a ajouté : « ${appt.title} » le ${fmtDateLong(appt.date)}${appt.time ? ' à ' + appt.time : ''}`, appt.type === 'rdv');
   });
   socket.on('appt:updated', ({ appt, by }) => {
     const i = appointments.findIndex(a => a.id === appt.id);
@@ -325,7 +334,7 @@ async function fallbackSync() {
     const oldApptIds = new Set(appointments.map(a => a.id));
     newAppts.forEach(a => {
       if (!oldApptIds.has(a.id) && a.createdBy !== ME.role) {
-        notify(`📅 ${a.createdBy} a ajouté : « ${a.title} » le ${fmtDate(a.date)}${a.time ? ' à ' + a.time : ''}`, a.type === 'rdv');
+        notify(`📅 ${a.createdBy} a ajouté : « ${a.title} » le ${fmtDateLong(a.date)}${a.time ? ' à ' + a.time : ''}`, a.type === 'rdv');
       }
     });
     // Nouvelles transactions de l'autre utilisateur → notification
@@ -422,20 +431,21 @@ async function loadAll() {
 function apptHtml(a) {
   return `
     <div class="appt ${a.type} ${a.done ? 'done' : ''}">
-      <div class="a-top">
-        <span class="a-title">${a.type === 'memo' ? '📝 ' : ''}${escapeHtml(a.title)}</span>
-        <span class="a-time">${a.time || ''}</span>
+      <div class="a-day">
+        <span class="a-weekday">${fmtWeekday(a.date)}</span>
+        <span class="a-hour">${a.time || 'Journée'}</span>
       </div>
+      <div class="a-numdate">${fmtDate(a.date)}</div>
+      <div class="a-title">${a.type === 'memo' ? '📝 ' : ''}${escapeHtml(a.title)}</div>
       <div class="a-meta">
         <span class="tag ${a.target === 'PDG' ? 'pdg' : 'dg'}">pour ${a.target}</span>
-        <span class="tag">${fmtDate(a.date)}</span>
         <span class="tag">par ${a.createdBy}</span>
       </div>
       ${a.notes ? `<div class="a-notes">${escapeHtml(a.notes)}</div>` : ''}
       <div class="a-actions">
         <button onclick="toggleDone(${a.id})">${a.done ? '↩ Rouvrir' : '✔ Terminé'}</button>
-        <button onclick="editAppt(${a.id})">✏ Modifier</button>
-        <button onclick="deleteAppt(${a.id})">🗑 Supprimer</button>
+        <button onclick="editAppt(${a.id})" title="Modifier">✏</button>
+        <button onclick="deleteAppt(${a.id})" title="Supprimer">🗑</button>
       </div>
     </div>`;
 }
@@ -448,13 +458,25 @@ function renderAgenda() {
   const sortFn = (x, y) => (x.date + (x.time || '00:00')).localeCompare(y.date + (y.time || '00:00'));
   const todays = appointments.filter(a => a.date === today).sort(sortFn);
   const upcoming = appointments.filter(a => a.date > today).sort(sortFn);
-  const past = appointments.filter(a => a.date < today || a.done).sort((x, y) => sortFn(y, x)).slice(0, 20);
 
   $('todayCount').textContent = todays.length;
   $('todayList').innerHTML = todays.length ? todays.map(apptHtml).join('') : '<div class="empty">Rien de prévu aujourd\'hui</div>';
   $('upcomingList').innerHTML = upcoming.length ? upcoming.map(apptHtml).join('') : '<div class="empty">Aucun rendez-vous à venir</div>';
-  $('pastList').innerHTML = past.length ? past.map(apptHtml).join('') : '<div class="empty">—</div>';
 }
+
+/* Cycle de vie des RDV : créés dans « À venir » → le jour J dans « Aujourd'hui »
+   → le lendemain ils disparaissent de l'affichage (agenda + calendrier).
+   Ils restent archivés en base de données. */
+$('apptDate').min = todayStr(); // pas de création dans le passé
+let lastRenderedDay = todayStr();
+setInterval(() => {
+  const d = todayStr();
+  if (d !== lastRenderedDay) {
+    lastRenderedDay = d;
+    $('apptDate').min = d;
+    renderAgenda(); // réaffiche tout : la veille disparaît, les lendemains passent en « Aujourd'hui »
+  }
+}, 30000);
 
 window.toggleDone = async (id) => {
   const a = appointments.find(x => x.id === id);
@@ -464,7 +486,7 @@ window.toggleDone = async (id) => {
 window.editAppt = (id) => {
   const a = appointments.find(x => x.id === id);
   if (!a) return;
-  $('apptModalTitle').textContent = 'Modifier';
+  $('apptModalTitle').textContent = 'Modifier le rendez-vous / mémo';
   $('apptId').value = a.id;
   $('apptTitle').value = a.title;
   $('apptDate').value = a.date;
@@ -472,6 +494,7 @@ window.editAppt = (id) => {
   $('apptType').value = a.type;
   $('apptTarget').value = a.target;
   $('apptNotes').value = a.notes || '';
+  updateApptDatePreview();
   $('apptModal').classList.remove('hidden');
 };
 window.deleteAppt = async (id) => {
@@ -486,8 +509,23 @@ $('addApptBtn').addEventListener('click', () => {
   $('apptDate').value = todayStr();
   // Par défaut : le DG écrit pour le PDG, et inversement
   $('apptTarget').value = ME.role === 'DG' ? 'PDG' : 'PDG';
+  updateApptDatePreview();
   $('apptModal').classList.remove('hidden');
 });
+
+/* Aperçu dans la modale : jour en lettres (gras + grand) + heure */
+function updateApptDatePreview() {
+  const el = $('apptDatePreview');
+  if (!el) return;
+  const d = $('apptDate').value;
+  const t = $('apptTime').value;
+  if (!d) { el.innerHTML = ''; el.classList.add('hidden'); return; }
+  const rest = new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  el.innerHTML = `<span class="pv-weekday">${fmtWeekday(d)}</span><span class="pv-rest">${rest}${t ? ' · ' + t : ''}</span>`;
+  el.classList.remove('hidden');
+}
+$('apptDate').addEventListener('input', updateApptDatePreview);
+$('apptTime').addEventListener('input', updateApptDatePreview);
 
 $('apptForm').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -637,7 +675,8 @@ async function renderCalendar() {
     const dow = new Date(c.date + 'T00:00:00').getDay();
     const isWeekend = dow === 5 || dow === 6; // vendredi / samedi (Algérie)
     const hols = holidayMap[c.date] || [];
-    const evts = appointments.filter(a => a.date === c.date);
+    // Les événements passés ne sont plus affichés (aujourd'hui + à venir uniquement)
+    const evts = c.date >= today ? appointments.filter(a => a.date === c.date) : [];
     const hasRdv = evts.some(a => a.type === 'rdv');
     const hasMemo = evts.some(a => a.type === 'memo');
     const cls = ['cal-cell'];
@@ -676,12 +715,13 @@ function renderCalEvents(holidayMap) {
   }
   $('calDayTitle').textContent = title;
 
+  const today = todayStr();
   const inScope = (d) => dates ? dates.includes(d) : (d || '').startsWith(prefix);
 
   const cards = [];
-  // Jours fériés
+  // Jours fériés (à partir d'aujourd'hui uniquement)
   Object.keys(holidayMap).sort().forEach(d => {
-    if (!inScope(d)) return;
+    if (!inScope(d) || d < today) return;
     holidayMap[d].forEach(h => {
       cards.push({
         sort: d + ' 00:00',
@@ -697,8 +737,8 @@ function renderCalEvents(holidayMap) {
       });
     });
   });
-  // Rendez-vous / mémos
-  appointments.filter(a => inScope(a.date)).forEach(a => {
+  // Rendez-vous / mémos (aujourd'hui + à venir uniquement)
+  appointments.filter(a => a.date >= today && inScope(a.date)).forEach(a => {
     cards.push({
       sort: a.date + ' ' + (a.time || '00:01'),
       html: `<div class="cal-evt-card" onclick="editAppt(${a.id})">
@@ -706,7 +746,7 @@ function renderCalEvents(holidayMap) {
         <span class="cal-evt-bar ${a.type}"></span>
         <div class="cal-evt-main">
           <div class="cal-evt-title">${escapeHtml(a.title)}</div>
-          <div class="cal-evt-sub">${fmtDate(a.date)} · pour ${a.target} · par ${a.createdBy}${a.notes ? ' — ' + escapeHtml(a.notes) : ''}</div>
+          <div class="cal-evt-sub">${fmtDateLong(a.date)} · pour ${a.target} · par ${a.createdBy}${a.notes ? ' — ' + escapeHtml(a.notes) : ''}</div>
         </div>
         <span class="cal-evt-chev">›</span>
       </div>`
@@ -721,12 +761,14 @@ function renderCalEvents(holidayMap) {
 
 window.calDayClick = (date) => {
   // 1er clic : sélectionner le jour (affiche ses événements) — 2e clic : créer un RDV
-  if (calSelected === date) {
-    $('apptModalTitle').textContent = 'Nouveau rendez-vous / mémo — ' + fmtDate(date);
+  // (création uniquement pour aujourd'hui ou une date future)
+  if (calSelected === date && date >= todayStr()) {
+    $('apptModalTitle').textContent = 'Nouveau rendez-vous / mémo';
     $('apptForm').reset();
     $('apptId').value = '';
     $('apptDate').value = date;
     $('apptTarget').value = 'PDG';
+    updateApptDatePreview();
     $('apptModal').classList.remove('hidden');
   } else {
     calSelected = date;
@@ -751,12 +793,13 @@ $('calToday').addEventListener('click', () => {
   renderCalendar();
 });
 $('calAddBtn').addEventListener('click', () => {
-  const d = calSelected || todayStr();
-  $('apptModalTitle').textContent = 'Nouveau rendez-vous / mémo — ' + fmtDate(d);
+  const d = calSelected && calSelected >= todayStr() ? calSelected : todayStr();
+  $('apptModalTitle').textContent = 'Nouveau rendez-vous / mémo';
   $('apptForm').reset();
   $('apptId').value = '';
   $('apptDate').value = d;
   $('apptTarget').value = 'PDG';
+  updateApptDatePreview();
   $('apptModal').classList.remove('hidden');
 });
 

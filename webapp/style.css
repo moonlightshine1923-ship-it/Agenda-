@@ -153,23 +153,33 @@ body {
 .count-pill { background: var(--blue); color: #fff; border-radius: 999px; padding: 1px 9px; font-size: .78rem; margin-left: 6px; }
 
 /* ============ Agenda ============ */
-.agenda-grid { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 16px; }
-.appt-list { display: flex; flex-direction: column; gap: 10px; min-height: 40px; }
+.agenda-stack { display: flex; flex-direction: column; gap: 16px; }
+.appt-row { display: flex; flex-direction: row; flex-wrap: wrap; gap: 12px; min-height: 40px; }
 .appt {
-  border-radius: 16px; padding: 12px 14px; background: #f8f9fb;
+  width: 224px; min-height: 224px; box-sizing: border-box;
+  display: flex; flex-direction: column;
+  border-radius: 16px; padding: 14px; background: #f8f9fb;
   border-left: 4px solid var(--pink); animation: fadeIn .3s;
   box-shadow: 0 2px 8px rgba(17,24,39,.04);
 }
 .appt.memo { border-left-color: var(--purple); }
 .appt.done { opacity: .55; }
 .appt.done .a-title { text-decoration: line-through; }
-.a-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
-.a-title { font-weight: 700; font-size: .96rem; color: var(--text); }
-.a-time { color: var(--pink); font-weight: 700; font-size: .9rem; white-space: nowrap; }
-.appt.memo .a-time { color: var(--purple); }
-.a-meta { color: var(--muted); font-size: .76rem; margin-top: 4px; }
-.a-notes { font-size: .85rem; margin-top: 5px; color: var(--muted2); white-space: pre-wrap; }
-.a-actions { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+.a-day { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.a-weekday {
+  font-size: 1.15rem; font-weight: 800; letter-spacing: .4px;
+  text-transform: uppercase; color: var(--text); line-height: 1.15;
+}
+.a-hour { color: var(--pink); font-weight: 800; font-size: 1.02rem; white-space: nowrap; }
+.appt.memo .a-hour { color: var(--purple); }
+.a-numdate { font-size: .72rem; color: var(--muted); margin-top: 2px; font-weight: 600; }
+.a-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-top: 8px; }
+.a-meta { color: var(--muted); font-size: .76rem; margin-top: 6px; }
+.a-notes {
+  font-size: .82rem; margin-top: 6px; color: var(--muted2); white-space: pre-wrap;
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+}
+.a-actions { margin-top: auto; padding-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
 .a-actions button {
   font-size: .75rem; padding: 5px 12px; border-radius: 999px; cursor: pointer;
   border: 1px solid var(--border); background: #fff; color: var(--muted2);
@@ -408,6 +418,19 @@ body {
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
 
+/* ============ Aperçu date (modale RDV) : jour en lettres gras + grand + heure ============ */
+.appt-date-preview {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px;
+  margin: -4px 0 16px; padding: 12px 16px;
+  background: #f8f9fb; border-radius: 14px; border-left: 4px solid var(--gold);
+}
+.appt-date-preview.hidden { display: none; }
+.pv-weekday {
+  font-size: 1.55rem; font-weight: 800; letter-spacing: .5px;
+  text-transform: uppercase; color: var(--text); line-height: 1.1;
+}
+.pv-rest { font-size: .95rem; color: var(--muted2); font-weight: 600; }
+
 /* ============ Toast ============ */
 .toast {
   position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
@@ -419,7 +442,6 @@ body {
 
 /* ============ Responsive ============ */
 @media (max-width: 900px) {
-  .agenda-grid { grid-template-columns: 1fr; }
   .stats-row { grid-template-columns: 1fr; }
   .presence { display: none; }
 }
@@ -435,4 +457,7 @@ body {
   .cal-card { padding: 14px 10px; border-radius: 18px; }
   .cal-daynum { width: 34px; height: 34px; font-size: .88rem; }
   .cal-cell { height: 40px; }
+  .appt { width: 100%; min-height: 0; }
+  .a-weekday { font-size: 1.05rem; }
+  .pv-weekday { font-size: 1.3rem; }
 }
